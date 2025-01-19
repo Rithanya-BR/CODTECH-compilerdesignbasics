@@ -1,0 +1,114 @@
+#include <iostream>
+#include <string>
+#include <cctype>
+#include <stdexcept>
+
+using namespace std;
+
+class SimpleCompiler {
+private:
+    string expression;
+    size_t pos;
+
+public:
+    SimpleCompiler(const string& expr) : expression(expr), pos(0) {}
+
+    double evaluate() {
+        double result = parseExpression();
+        if (pos < expression.size()) {
+            throw runtime_error("Unexpected character at position " + to_string(pos));
+        }
+        return result;
+    }
+
+private:
+    double parseExpression() {
+        double result = parseTerm();
+        while (pos < expression.size()) {
+            if (expression[pos] == '+') {
+                pos++;
+                result += parseTerm();
+            } else if (expression[pos] == '-') {
+                pos++;
+                result -= parseTerm();
+            } else {
+                break;
+            }
+        }
+        return result;
+    }
+
+    double parseTerm() {
+        double result = parseFactor();
+        while (pos < expression.size()) {
+            if (expression[pos] == '*') {
+                pos++;
+                result *= parseFactor();
+            } else if (expression[pos] == '/') {
+                pos++;
+                double divisor = parseFactor();
+                if (divisor == 0) {
+                    throw runtime_error("Division by zero");
+                }
+                result /= divisor;
+            } else {
+                break;
+            }
+        }
+        return result;
+    }
+
+    double parseFactor() {
+        if (pos >= expression.size()) {
+            throw runtime_error("Unexpected end of expression");
+        }
+
+        if (expression[pos] == '(') {
+            pos++;
+            double result = parseExpression();
+            if (pos >= expression.size() || expression[pos] != ')') {
+                throw runtime_error("Mismatched parentheses");
+            }
+            pos++;
+            return result;
+        }
+
+        return parseNumber();
+    }
+
+    double parseNumber() {
+        size_t start = pos;
+        while (pos < expression.size() && (isdigit(expression[pos]) || expression[pos] == '.')) {
+            pos++;
+        }
+        if (start == pos) {
+            throw runtime_error("Expected number at position " + to_string(start));
+        }
+        return stod(expression.substr(start, pos - start));
+    }
+};
+
+int main() {
+    cout << "--- Simple Arithmetic Compiler ---" << endl;
+    cout << "Enter 'exit' to quit the program." << endl;
+
+    string input;
+    while (true) {
+        cout << "\nEnter an expression: ";
+        getline(cin, input);
+
+        if (input == "exit") {
+            break;
+        }
+
+        try {
+            SimpleCompiler compiler(input);
+            double result = compiler.evaluate();
+            cout << "Result: " << result << endl;
+        } catch (const exception& e) {
+            cerr << "Error: " << e.what() << endl;
+        }
+    }
+
+    return 0;
+}
